@@ -1,0 +1,193 @@
+!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Bóng Rổ Mini</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 5px;
+            font-size: 24px;
+            color: #ff8c00;
+        }
+        #score {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        canvas {
+            background: linear-gradient(to bottom, #4a90e2, #e0f7fa);
+            border: 4px solid #fff;
+            border-radius: 10px;
+            box-shadow: 0px 10px 25px rgba(0,0,0,0.5);
+            cursor: pointer;
+        }
+        .instructions {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #ccc;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏀 Game Bóng Rổ Mini</h1>
+    <div id="score">Điểm: 0 | Kỷ lục: 0</div>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <div class="instructions">Click và kéo thả chuột để ném bóng vào rổ!</div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = document.getElementById("score");
+
+        let score = 0;
+        let highScore = 0;
+
+        // Thông số bóng
+        let ball = {
+            x: 100,
+            y: 400,
+            radius: 15,
+            vx: 0,
+            vy: 0,
+            isThrown: false,
+            color: "#ff6600"
+        };
+
+        // Vị trí rổ bóng rổ
+        const hoop = {
+            x: 300,
+            y: 160,
+            width: 70,
+            height: 10,
+            scored: false
+        };
+
+        let isDragging = false;
+        let startX = 0, startY = 0;
+
+        // Xử lý sự kiện chuột để kéo thả ném bóng
+        canvas.addEventListener("mousedown", (e) => {
+            if (!ball.isThrown) {
+                isDragging = true;
+                const rect = canvas.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+            }
+        });
+
+        canvas.addEventListener("mousemove", (e) => {
+            if (isDragging) {
+                // Có thể thêm đường dẫn hướng ở đây nếu muốn
+            }
+        });
+
+        canvas.addEventListener("mouseup", (e) => {
+            if (isDragging) {
+                isDragging = false;
+                const rect = canvas.getBoundingClientRect();
+                const endX = e.clientX - rect.left;
+                const endY = e.clientY - rect.top;
+
+                // Tính lực ném dựa vào khoảng cách kéo thả
+                ball.vx = (startX - endX) * 0.15;
+                ball.vy = (startY - endY) * 0.15;
+                ball.isThrown = true;
+                hoop.scored = false;
+            }
+        });
+
+        function resetBall() {
+            ball.x = 100;
+            ball.y = 400;
+            ball.vx = 0;
+            ball.vy = 0;
+            ball.isThrown = false;
+        }
+
+        function update() {
+            if (ball.isThrown) {
+                // Trọng lực kéo bóng xuống
+                ball.vy += 0.3;
+                ball.x += ball.vx;
+                ball.y += ball.vy;
+
+                // Kiểm tra ghi điểm (bóng đi qua vành rổ từ trên xuống)
+                if (!hoop.scored && 
+                    ball.x > hoop.x - 10 && 
+                    ball.x < hoop.x + hoop.width + 10 && 
+                    ball.y > hoop.y && 
+                    ball.y < hoop.y + 15 && 
+                    ball.vy > 0) {
+                    score++;
+                    if (score > highScore) highScore = score;
+                    hoop.scored = true;
+                }
+
+                // Kiểm tra bóng rơi ra ngoài màn hình
+                if (ball.y > canvas.height + 50 || ball.x > canvas.width + 50 || ball.x < -50) {
+                    resetBall();
+                }
+            }
+        }
+
+        function draw() {
+            // Xóa màn hình
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Vẽ bảng rổ
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(hoop.x + hoop.width, hoop.y - 40, 10, 70);
+
+            // Vẽ vành rổ
+            ctx.fillStyle = "#ff3300";
+            ctx.fillRect(hoop.x, hoop.y, hoop.width, 6);
+
+            // Vẽ lưới rổ (đường zic-zac đơn giản)
+            ctx.strokeStyle = "rgba(255,255,255,0.7)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(hoop.x + 5, hoop.y + 6);
+            ctx.lineTo(hoop.x + 15, hoop.y + 30);
+            ctx.lineTo(hoop.x + 25, hoop.y + 6);
+            ctx.lineTo(hoop.x + 35, hoop.y + 30);
+            ctx.lineTo(hoop.x + 45, hoop.y + 6);
+            ctx.lineTo(hoop.x + 55, hoop.y + 30);
+            ctx.stroke();
+
+            // Vẽ bóng
+            ctx.fillStyle = ball.color;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = "#b34700";
+            ctx.stroke();
+
+            // Cập nhật điểm hiển thị
+            scoreEl.innerText = `Điểm: ${score} | Kỷ lục: ${highScore}`;
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+    </script>
+</body>
+</html>
